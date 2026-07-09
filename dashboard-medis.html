@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ECHO-GLANCE — Dual-Layer Eye Blink Messenger IoT Dashboard">
+    <title>ECHO-GLANCE - Dashboard</title>
+    <link rel="icon" type="image/png" href="assets/img/logo_echo_glance.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+</head>
+<body>
+<!-- Mobile Menu Toggle -->
+<button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle Menu">☰</button>
+<!-- Mobile Overlay -->
+<div class="mobile-overlay" id="mobileOverlay"></div>
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/img/logo_echo_glance.png" alt="ECHO-GLANCE Logo">
+        <div>
+            <div class="brand-name">ECHO-GLANCE</div>
+            <div class="brand-tagline">IoT Dashboard</div>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Menu Utama</div>
+        <a href="dashboard-keluarga.html" class="nav-item"><span class="nav-icon">📊</span><span>Dashboard Keluarga</span></a>
+        <a href="dashboard-medis.html" class="nav-item"><span class="nav-icon">📊</span><span>Dashboard Medis</span></a>
+        
+        <div class="nav-section-label" style="margin-top: var(--space-md);">Pintasan Navigasi</div>
+        <a href="#overview" class="nav-item" onclick="if(window.switchTab) switchTab('overview')"><span class="nav-icon">🔔</span><span>Notifikasi</span></a>
+        <a href="#histori" class="nav-item" onclick="if(window.switchTab) switchTab('histori')"><span class="nav-icon">📋</span><span>Histori Hari Ini</span></a>
+        <a href="#grafik-mpu" class="nav-item" onclick="if(window.switchTab) switchTab('grafik')"><span class="nav-icon">🧠</span><span>Grafik MPU6050</span></a>
+        <a href="#grafik-fsr" class="nav-item" onclick="if(window.switchTab) switchTab('grafik')"><span class="nav-icon">💪</span><span>Grafik FSR402</span></a>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="user-avatar">UD</div>
+            <div class="user-info">
+                <div class="user-name">User Demo</div>
+                <div class="user-role">Demo Account</div>
+            </div>
+        </div>
+        <a href="index.html" class="nav-item" style="margin-top: var(--space-sm); color: rgba(255,255,255,0.5);">
+            <span class="nav-icon">🚪</span><span>Logout</span>
+        </a>
+    </div>
+</aside>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggle = document.getElementById('mobileMenuToggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    if (toggle) toggle.addEventListener('click', () => { sidebar.classList.toggle('open'); overlay.classList.toggle('show'); });
+    if (overlay) overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); });
+    
+    document.querySelectorAll('.sidebar-nav a').forEach(a => {
+        a.addEventListener('click', () => {
+            if(sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('show');
+            }
+        });
+    });
+});
+</script>
+<main class="main-content">
+    <!-- Header -->
+    <div class="dashboard-header animate-fadeInUp">
+        <div>
+            <h1>Dashboard Tenaga Medis</h1>
+            <p class="page-subtitle">Analisis data sensor & progres terapi pasien</p>
+        </div>
+        <div class="header-actions">
+            <div class="refresh-indicator">
+                <span class="refresh-dot"></span>
+                <span>Live — grafik update 10 detik</span>
+            </div>
+            
+                <span class="badge badge-role">Admin</span>
+            
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-nav" role="tablist">
+        <button class="tab-btn active" data-tab="overview" role="tab" onclick="switchTab('overview')">
+            <span>📊</span> Overview
+        </button>
+        <button class="tab-btn" data-tab="grafik" role="tab" onclick="switchTab('grafik')">
+            <span>📈</span> Grafik Sensor
+        </button>
+        <button class="tab-btn" data-tab="histori" role="tab" onclick="switchTab('histori')">
+            <span>📋</span> Histori Command
+        </button>
+        <button class="tab-btn" data-tab="panduan" role="tab" onclick="switchTab('panduan')">
+            <span>👁</span> Pola Kedipan
+        </button>
+        
+            <button class="tab-btn" data-tab="admin" role="tab" onclick="switchTab('admin')">
+                <span>⚙️</span> Kelola Akun
+                
+                    <span class="tab-badge"></span>
+                
+            </button>
+        
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: OVERVIEW -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-overview">
+        <div class="grid-medis-summary animate-fadeInUp">
+            <!-- Device Status -->
+            <div class="card device-status-card">
+                <div class="card-header">
+                    <h3>
+                        <span class="card-icon card-icon-primary">⚡</span>
+                        Status Alat
+                    </h3>
+                </div>
+                <div class="status-device">
+                    <div class="device-mode-label">Mode Perangkat</div>
+                    <div class="status-badge-lg tidak-aktif" id="deviceModeBadge">○ MEMUAT...</div>
+                    <p id="deviceModeDesc" style="font-size:0.6875rem;color:var(--color-text-muted);margin-top:4px;">Memuat...</p>
+                    <div class="sensor-grid">
+                        <div class="sensor-item">
+                            <span class="sensor-icon">👁</span>
+                            <span class="sensor-name">TCRT5000</span>
+                            <span class="sensor-status ok" id="sensorMata">—</span>
+                        </div>
+                        <div class="sensor-item">
+                            <span class="sensor-icon">🧠</span>
+                            <span class="sensor-name">MPU6050</span>
+                            <span class="sensor-status ok" id="sensorMPU">—</span>
+                        </div>
+                        <div class="sensor-item">
+                            <span class="sensor-icon">💪</span>
+                            <span class="sensor-name">FSR402</span>
+                            <span class="sensor-status ok" id="sensorFSR">—</span>
+                        </div>
+                    </div>
+                    <span class="label-small" id="deviceLastUpdated" style="margin-top:var(--space-md);display:block;">—</span>
+                </div>
+            </div>
+
+            <!-- Daily Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>
+                        <span class="card-icon card-icon-accent">📊</span>
+                        Ringkasan Hari Ini
+                    </h3>
+                </div>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-icon">📢</div>
+                        <div class="summary-value" style="color:var(--color-primary);"></div>
+                        <div class="summary-label">Total Event</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-icon">🔥</div>
+                        <div class="summary-value" style="color:var(--color-accent);font-size:0.9rem;"></div>
+                        <div class="summary-label">Kebutuhan Terbanyak</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-icon">⏰</div>
+                        <div class="summary-value" style="color:var(--color-warning);"></div>
+                        <div class="summary-label">Jam Puncak</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-icon">⚡</div>
+                        <div class="summary-value" style="color:var(--color-success);"> ms</div>
+                        <div class="summary-label">Rata-rata Response</div>
+                    </div>
+                </div>
+                <!-- Layer distribution -->
+                <div style="margin-top:var(--space-md);padding:var(--space-md);background:var(--color-bg);border-radius:var(--radius-md);">
+                    <div class="label-small" style="margin-bottom:var(--space-sm);">Distribusi Layer Hari Ini</div>
+                    <div style="display:flex;gap:var(--space-md);align-items:center;">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span class="badge badge-layer1">Layer 1</span>
+                            <strong style="font-size:0.875rem;"></strong>
+                            <span style="font-size:0.6875rem;color:var(--color-text-muted);">Ya/Tidak</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span class="badge badge-layer2">Layer 2</span>
+                            <strong style="font-size:0.875rem;"></strong>
+                            <span style="font-size:0.6875rem;color:var(--color-text-muted);">Menu</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Filter -->
+            <div class="card date-filter-card">
+                <div class="card-header">
+                    <h3>
+                        <span class="card-icon card-icon-success">📅</span>
+                        Filter Tanggal
+                    </h3>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Dari</label>
+                    <input type="date" class="form-input" id="filterDateFrom" value="">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sampai</label>
+                    <input type="date" class="form-input" id="filterDateTo" value="">
+                </div>
+                <button class="btn btn-primary w-full" onclick="applyDateFilter()">
+                    Terapkan Filter
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick notification panel -->
+        <div class="card animate-fadeInUp stagger-2" style="margin-top:var(--space-xl);">
+            <div class="card-header">
+                <h3>
+                    <span class="card-icon card-icon-accent">🔔</span>
+                    Notifikasi Terbaru
+                </h3>
+                <div class="notification-count zero" id="notifCountBadge">0</div>
+            </div>
+            <div class="notification-list" id="notificationList" style="max-height:300px;overflow-y:auto;">
+                <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <div class="empty-title">Memuat...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: GRAFIK SENSOR -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-grafik">
+        <!-- MPU6050 Chart -->
+        <div class="card chart-section animate-fadeInUp" id="grafik-mpu" style="margin-bottom:var(--space-xl);">
+            <div class="card-header">
+                <h3>
+                    <span class="card-icon card-icon-primary">🧠</span>
+                    Posisi Kepala — MPU6050
+                </h3>
+                <div class="chart-legend-custom">
+                    <div class="legend-item"><span class="legend-dot pitch"></span> Pitch (°)</div>
+                    <div class="legend-item"><span class="legend-dot roll"></span> Roll (°)</div>
+                </div>
+            </div>
+            <div style="padding:0 var(--space-md);margin-bottom:var(--space-sm);">
+                <div class="alert alert-info" style="font-size:0.75rem;padding:var(--space-sm) var(--space-md);margin:0;">
+                    ℹ️ Threshold perubahan posisi: <strong>&gt;15°</strong> pitch/roll → trigger notifikasi "Perubahan posisi kepala terdeteksi" + suara DFPlayer. Debounce aktif untuk hindari alarm berulang.
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="mpuChart"></canvas>
+            </div>
+        </div>
+
+        <!-- FSR402 Chart -->
+        <div class="card chart-section animate-fadeInUp stagger-2" id="grafik-fsr">
+            <div class="card-header">
+                <h3>
+                    <span class="card-icon card-icon-accent">💪</span>
+                    Progres Terapi Otot Pipi — FSR402
+                </h3>
+                <div class="chart-legend-custom">
+                    <div class="legend-item"><span class="legend-dot force"></span> Gaya (gram)</div>
+                    <div class="legend-item"><span class="legend-dot baseline"></span> Baseline</div>
+                </div>
+            </div>
+            <div style="padding:0 var(--space-md);margin-bottom:var(--space-sm);">
+                <div class="alert alert-info" style="font-size:0.75rem;padding:var(--space-sm) var(--space-md);margin:0;">
+                    ℹ️ <strong>Baseline</strong> = rata-rata gaya tekan sebelum sesi terapi. Bar <strong style="color:var(--color-success);">hijau</strong> = di atas baseline (membaik), bar <strong style="color:var(--color-danger);">merah</strong> = di bawah baseline. Data hanya aktif pada <strong>Mode Aktif</strong>.
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="fsrChart"></canvas>
+            </div>
+            <div class="chart-metrics">
+                <div class="chart-metric-card">
+                    <div class="metric-value" id="metricAvgForce">—</div>
+                    <div class="metric-label">Rata-rata Gaya Tekan Hari Ini</div>
+                </div>
+                <div class="chart-metric-card">
+                    <div class="metric-value" id="metricAvgMovements">—</div>
+                    <div class="metric-label">Gerakan Terdeteksi / Menit</div>
+                </div>
+                <div class="chart-metric-card">
+                    <div class="metric-value" id="metricStdDev">—</div>
+                    <div class="metric-label">Standar Deviasi (Variasi)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: HISTORI COMMAND -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-histori">
+        <div class="card history-section animate-fadeInUp" id="histori-command">
+            <div class="card-header">
+                <h3>
+                    <span class="card-icon card-icon-primary">📋</span>
+                    Histori Command Lengkap
+                </h3>
+            </div>
+
+            <div class="table-controls">
+                <div class="table-controls-left">
+                    <div class="search-input-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="form-input" id="historySearch" placeholder="Cari command..." style="padding-left:36px;max-width:250px;">
+                    </div>
+                    <select class="form-select" id="historyLayerFilter" style="max-width:180px;" onchange="loadMedisHistory(1)">
+                        <option value="all">Semua Layer</option>
+                        <option value="layer_1">Layer 1 — Ya/Tidak</option>
+                        <option value="layer_2">Layer 2 — Menu</option>
+                    </select>
+                </div>
+                <div class="table-controls-right">
+                    <button class="btn btn-outline btn-sm btn-export" onclick="exportCSV()">
+                        📥 Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Waktu</th>
+                            <th>Command</th>
+                            <th>Layer</th>
+                            <th>Response Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="medisHistoryBody">
+                        <tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="medisHistoryPagination"></div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: PANDUAN POLA KEDIPAN -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-panduan">
+        <div class="card animate-fadeInUp">
+            <div class="card-header">
+                <h3>
+                    <span class="card-icon card-icon-primary">👁</span>
+                    Sistem Deteksi Kedipan Mata — Dual Layer
+                </h3>
+            </div>
+
+            <!-- System flow -->
+            <div style="padding:var(--space-md);background:var(--color-bg);border-radius:var(--radius-md);margin-bottom:var(--space-xl);font-size:0.8125rem;color:var(--color-text-muted);line-height:1.8;">
+                <strong style="color:var(--color-text);">🔄 Alur Kerja:</strong><br>
+                1. ESP32-C3 dinyalakan → DFPlayer memutar: <em>"Sistem Siap Dimulai"</em><br>
+                2. Sensor TCRT5000 mendeteksi pola kedipan mata pasien<br>
+                3. Pola dianalisis menggunakan <em>state machine</em> (rule-based) pada ESP32<br>
+                4. Hasil dikirim via WiFi ke Firebase / Backend → Notifikasi ke dashboard
+            </div>
+
+            <div class="grid-2col gap-xl">
+                <!-- Layer 1 -->
+                <div>
+                    <div style="padding:var(--space-lg);border-radius:var(--radius-lg);border:2px solid rgba(37,65,178,0.2);background:linear-gradient(135deg, rgba(37,65,178,0.03), rgba(37,65,178,0.08));">
+                        <div class="label-small" style="color:var(--color-primary);margin-bottom:var(--space-md);font-size:0.75rem;">
+                            📘 Lapisan 1 — Respon Cepat
+                        </div>
+
+                        <div style="display:flex;flex-direction:column;gap:var(--space-lg);">
+                            <div style="display:flex;align-items:flex-start;gap:var(--space-md);">
+                                <div style="width:48px;height:48px;border-radius:var(--radius-md);background:var(--color-success-surface);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">✅</div>
+                                <div>
+                                    <strong style="font-size:0.9375rem;color:var(--color-text);">Konfirmasi YA</strong>
+                                    <div style="font-size:0.8125rem;color:var(--color-text-muted);margin-top:2px;">
+                                        Kedip <strong>1×</strong>, tutup mata selama <strong>±2 detik</strong>
+                                    </div>
+                                    <div style="margin-top:6px;display:flex;gap:4px;">
+                                        <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--color-primary);"></span>
+                                        <span style="display:inline-block;width:40px;height:16px;border-radius:8px;background:var(--color-primary-dark);"></span>
+                                        <span style="font-size:0.625rem;color:var(--color-text-light);align-self:center;margin-left:4px;">~2 detik</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display:flex;align-items:flex-start;gap:var(--space-md);">
+                                <div style="width:48px;height:48px;border-radius:var(--radius-md);background:var(--color-danger-surface);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">❌</div>
+                                <div>
+                                    <strong style="font-size:0.9375rem;color:var(--color-text);">Konfirmasi TIDAK</strong>
+                                    <div style="font-size:0.8125rem;color:var(--color-text-muted);margin-top:2px;">
+                                        Kedip <strong>2×</strong> cepat, interval <strong>≤1 detik</strong>
+                                    </div>
+                                    <div style="margin-top:6px;display:flex;gap:4px;">
+                                        <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--color-danger);"></span>
+                                        <span style="display:inline-block;width:8px;height:16px;background:transparent;"></span>
+                                        <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--color-danger);"></span>
+                                        <span style="font-size:0.625rem;color:var(--color-text-light);align-self:center;margin-left:4px;">≤1 detik</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Layer 2 -->
+                <div>
+                    <div style="padding:var(--space-lg);border-radius:var(--radius-lg);border:2px solid rgba(242,114,30,0.2);background:linear-gradient(135deg, rgba(242,114,30,0.03), rgba(242,114,30,0.08));">
+                        <div class="label-small" style="color:var(--color-accent);margin-bottom:var(--space-md);font-size:0.75rem;">
+                            📙 Lapisan 2 — Menu Kebutuhan
+                        </div>
+
+                        <div style="margin-bottom:var(--space-md);padding:var(--space-md);background:rgba(242,114,30,0.06);border-radius:var(--radius-md);">
+                            <strong style="font-size:0.8125rem;color:var(--color-text);">🔓 Buka Menu:</strong>
+                            <div style="font-size:0.8125rem;color:var(--color-text-muted);margin-top:4px;">
+                                Kedip panjang ganda — <strong>2× tutup mata 1.5 detik</strong>, jeda 0.5 detik
+                            </div>
+                            <div style="margin-top:6px;display:flex;gap:4px;align-items:center;">
+                                <span style="display:inline-block;width:30px;height:16px;border-radius:8px;background:var(--color-accent);"></span>
+                                <span style="display:inline-block;width:10px;height:16px;background:transparent;"></span>
+                                <span style="display:inline-block;width:30px;height:16px;border-radius:8px;background:var(--color-accent);"></span>
+                                <span style="font-size:0.625rem;color:var(--color-text-light);margin-left:4px;">1.5s + 0.5s + 1.5s</span>
+                            </div>
+                        </div>
+
+                        <div class="label-small" style="margin-bottom:var(--space-sm);font-size:0.625rem;">Daftar Menu (DFPlayer bacakan satu per satu)</div>
+                        <div style="display:flex;flex-direction:column;gap:6px;">
+                            
+                                <div style="display:flex;align-items:center;gap:8px;font-size:0.8125rem;">
+                                    <span style="width:20px;height:20px;border-radius:50%;background:var(--color-bg);display:flex;align-items:center;justify-content:center;font-size:0.625rem;font-weight:700;color:var(--color-text-muted);flex-shrink:0;"></span>
+                                    <span></span>
+                                    <span style="color:var(--color-text);"></span>
+                                </div>
+                            
+                            <div style="font-size:0.6875rem;color:var(--color-text-light);font-style:italic;margin-top:4px;">
+                                + Menu tambahan sesuai request keluarga pasien
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sensor Mode Reference -->
+            <div style="margin-top:var(--space-xl);">
+                <h4 style="margin-bottom:var(--space-md);">🔧 Mode Perangkat</h4>
+                <div class="grid-2col gap-lg">
+                    <div style="padding:var(--space-lg);border-radius:var(--radius-lg);background:var(--color-bg);border:1px solid var(--color-border);">
+                        <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-md);">
+                            <span class="badge badge-nonaktif">○ Mode Tidak Aktif</span>
+                            <span style="font-size:0.75rem;color:var(--color-text-muted);">(Pasien tidur/istirahat)</span>
+                        </div>
+                        <div style="font-size:0.8125rem;color:var(--color-text-muted);line-height:1.8;">
+                            ✅ <strong>TCRT5000 (Mata)</strong> — Aktif untuk komunikasi dasar<br>
+                            💤 <strong>MPU6050 (Kepala)</strong> — Non-aktif, hemat daya<br>
+                            💤 <strong>FSR402 (Pipi)</strong> — Non-aktif, hindari alarm palsu
+                        </div>
+                    </div>
+                    <div style="padding:var(--space-lg);border-radius:var(--radius-lg);background:var(--color-success-surface);border:1px solid rgba(22,163,74,0.2);">
+                        <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-md);">
+                            <span class="badge badge-aktif">● Mode Aktif</span>
+                            <span style="font-size:0.75rem;color:var(--color-text-muted);">(Sesi terapi / kegiatan)</span>
+                        </div>
+                        <div style="font-size:0.8125rem;color:var(--color-text-muted);line-height:1.8;">
+                            ✅ <strong>TCRT5000 (Mata)</strong> — Aktif penuh<br>
+                            ✅ <strong>MPU6050 (Kepala)</strong> — Deteksi &gt;15° → notifikasi<br>
+                            ✅ <strong>FSR402 (Pipi)</strong> — Ukur amplitudo & frekuensi terapi
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ML Classification Note -->
+            <div style="margin-top:var(--space-xl);padding:var(--space-lg);border-radius:var(--radius-lg);background:linear-gradient(135deg, var(--color-primary-surface), rgba(37,65,178,0.04));border:1px solid rgba(37,65,178,0.1);">
+                <h4 style="margin-bottom:var(--space-sm);">🤖 Klasifikasi Pola Kedipan</h4>
+                <p style="font-size:0.8125rem;color:var(--color-text-muted);line-height:1.7;">
+                    Versi awal menggunakan pendekatan <strong>rule-based (state machine)</strong> pada ESP32 — sudah cukup akurat untuk pola yang jelas bedanya.
+                    Data logging dikumpulkan untuk melatih model <strong>Random Forest / Decision Tree</strong> dari fitur turunan (durasi rata-rata, interval, jumlah kedip per sesi) guna personalisasi per pasien.
+                    Model dilatih di server (Python + scikit-learn) → parameter diekspor ke ESP32.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: ADMIN PANEL (only for admin role) -->
+    <!-- ============================================================ -->
+    
+    <div class="tab-content" id="tab-admin">
+        <div class="card animate-fadeInUp">
+            <div class="card-header">
+                <h3>
+                    <span class="card-icon card-icon-danger">⚙️</span>
+                    Verifikasi Akun Tenaga Medis
+                </h3>
+                <span class="badge badge-warning"> Pending</span>
+            </div>
+
+            
+                <div class="empty-state">
+                    <div class="empty-icon">✅</div>
+                    <div class="empty-title">Semua akun sudah diverifikasi</div>
+                    <div class="empty-desc">Tidak ada akun yang menunggu persetujuan saat ini.</div>
+                </div>
+            
+                <div class="table-wrapper">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Email</th>
+                                <th>No. STR</th>
+                                <th>Tanggal Daftar</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                                <tr id="pending-row-">
+                                    <td><strong></strong></td>
+                                    <td></td>
+                                    <td><code></code></td>
+                                    <td></td>
+                                    <td>
+                                        <div class="admin-action-btns">
+                                            <button class="btn btn-sm btn-success" onclick="EchoGlance.adminAction('approve', )">
+                                                ✔ Setujui
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="EchoGlance.adminAction('reject', )">
+                                                ✘ Tolak
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            
+                        </tbody>
+                    </table>
+                </div>
+            
+        </div>
+    </div>
+    
+</main>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="assets/js/realtime.js"></script>
+<script src="assets/js/chart-init.js"></script>
+<script>
+function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `tab-${tabName}`);
+    });
+    if (tabName === 'grafik' && !window._chartsInitialized) {
+        initCharts();
+        window._chartsInitialized = true;
+    }
+    if (tabName === 'histori' && !window._historyLoaded) {
+        loadMedisHistory(1);
+        window._historyLoaded = true;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    EchoGlance.init({ pollingInterval: 10000 });
+
+    EchoGlance.fetchDeviceStatus();
+    EchoGlance.fetchNotifications({
+        today: true, limit: 10,
+        renderTarget: 'notificationList', showAction: true
+    });
+
+    EchoGlance.startPolling([
+        () => EchoGlance.fetchDeviceStatus(),
+        () => EchoGlance.fetchNotifications({
+            today: true, limit: 10,
+            renderTarget: 'notificationList', showAction: true
+        }),
+    ], 10000);
+
+    let searchTimer;
+    const searchInput = document.getElementById('historySearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => loadMedisHistory(1), 400);
+        });
+    }
+});
+
+function initCharts() {
+    const from = document.getElementById('filterDateFrom').value;
+    const to = document.getElementById('filterDateTo').value;
+    EchoCharts.initMPUChart('mpuChart', { from, to });
+    EchoCharts.initFSRChart('fsrChart', { from, to });
+}
+
+function applyDateFilter() {
+    const from = document.getElementById('filterDateFrom').value;
+    const to = document.getElementById('filterDateTo').value;
+    if (window._chartsInitialized) {
+        EchoCharts.refreshCharts(from, to);
+    }
+    if (window._historyLoaded) {
+        loadMedisHistory(1);
+    }
+    EchoGlance.showToast('Filter diterapkan', 'success');
+}
+
+let _medisHistoryPage = 1;
+function loadMedisHistory(page) {
+    _medisHistoryPage = page;
+    const layer = document.getElementById('historyLayerFilter').value;
+    const search = document.getElementById('historySearch').value;
+    const from = document.getElementById('filterDateFrom').value;
+    const to = document.getElementById('filterDateTo').value;
+    EchoGlance.fetchHistory({
+        page, limit: 10, layer, search, from, to,
+        renderTarget: 'medisHistoryBody',
+        paginationTarget: 'medisHistoryPagination',
+        onPageChange: 'loadMedisHistory',
+        startNo: (page - 1) * 10 + 1
+    });
+}
+
+function exportCSV() {
+    const layer = document.getElementById('historyLayerFilter').value;
+    const search = document.getElementById('historySearch').value;
+    const from = document.getElementById('filterDateFrom').value;
+    const to = document.getElementById('filterDateTo').value;
+    let url = `api/get_history.html?export=csv`;
+    if (layer !== 'all') url += `&layer=${layer}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (from) url += `&from=${from}`;
+    if (to) url += `&to=${to}`;
+    window.open(url, '_blank');
+}
+</script>
+
+
+
+    <!-- Footer branding -->
+    <footer class="main-footer" style="text-align: center; padding: var(--space-lg); color: var(--color-text-light); font-size: 0.75rem; margin-left: 260px;">
+        <p>© 2026 <strong>ECHO-GLANCE</strong> — Dual-Layer Eye Blink Messenger · KMIPN 2026</p>
+    </footer>
+
+    
+        
+            <script src=""></script>
+        
+    
+</body>
+</html>
+
